@@ -145,7 +145,7 @@ class INPUT(ctypes.Structure):
 
 
 def attach_to_default_desktop():
-    """将当前线程挂接至用户交互桌面 WinSta0\Default(穿透沙箱桌面隔离)。"""
+    r"""将当前线程挂接至用户交互桌面 WinSta0\Default(穿透沙箱桌面隔离)。"""
     if sys.platform == "win32":
         try:
             h_desk = ctypes.windll.user32.OpenDesktopW("Default", 0, False, 0x01FF)
@@ -501,18 +501,22 @@ class Forwarder:
                 self.sink.write_block(payload[2:])
             self.audio_blocks += 1
             if self.audio_blocks == 1:
-                print("[audio] 已收到设备首个音频块并写入 VB-Cable")
+                route = getattr(self, 'audio_route_label', 'VB-Cable')
+                print(f"[audio] 已收到设备首个音频块并写入 {route}")
 
     def on_disconnect(self):
         print("[link] 设备断开,热键复位;等待 beacon 自动重连...")
         self.finish()                 # 链路死了热键必须抬起来
 
+    def make_transport(self):
+        return UdpTransport(port=self.args.port,
+                            device_wait_timeout=10 ** 9,
+                            device_ip=self.args.device_ip,
+                            auto_recover=False)
+
     async def run(self):
         while True:
-            transport = UdpTransport(port=self.args.port,
-                                     device_wait_timeout=10 ** 9,
-                                     device_ip=self.args.device_ip,
-                                     auto_recover=False)
+            transport = self.make_transport()
             status_task = None
             # 链路断开信号:on_disconnect 由读线程经 call_soon_threadsafe 在
             # 事件循环线程里调用,这里 set asyncio.Event 唤醒下方 wait。

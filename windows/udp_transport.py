@@ -127,13 +127,14 @@ class UdpTransport:
                  device_wait_timeout=DEVICE_WAIT_TIMEOUT,
                  link_timeout=LINK_TIMEOUT,
                  auto_recover=True,
-                 device_ip=None):
+                 device_ip=None, broadcast_targets=None):
         self._port = int(port) if port else UDP_PORT
         self._bind_host = bind_host
         self._beacon_interval = beacon_interval
         self._device_wait_timeout = device_wait_timeout
         self._link_timeout = link_timeout
         self._device_ip = str(device_ip).strip() if device_ip else None
+        self._broadcast_targets = broadcast_targets or _local_broadcast_addrs
         # 2026-09-13 修复:UDP 是无连接的,"设备静默 6s"并不意味着链路要拆。
         # 原来静默超时会让读线程退出 → 回调 on_disconnect → relay 收束整个会话
         # 并关闭 socket;而设备侧会自动重连,结果电脑端必须手重启(WINDOWS.md
@@ -171,16 +172,17 @@ class UdpTransport:
         """
         self._on_disconnect = on_disconnect
         self._loop = asyncio.get_running_loop()
+        sock = None
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             # 2026-09-13 修复:Windows 上 SO_REUSEADDR 语义等同于 SO_REUSEPORT,
             # 允许第二个进程静默绑定同一端口并抢走设备报文(排查时极难定位)。
-            # 仅在 POSIX 上保留(用于快速重启回收 TIME_WAIT)。
-            if sys.platform != "win32":
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # UDP 没有 TIME_WAIT；Mac 也拒绝第二个客户端抢占相同端口。
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.bind((self._bind_host, self._port))
         except OSError as e:
+            if sock is not None:
+                sock.close()
             raise UdpError(
                 f"绑定 UDP {self._bind_host}:{self._port} 失败: {e}\n"
                 "(确认端口未被占用、已在防火墙放行入站 UDP)") from e
@@ -270,7 +272,7 @@ class UdpTransport:
         变化即打印。另外**设备未上线时用 1s 快发**,缩短"设备已进入 AI语音"
         到"电脑学到设备"之间的等待。
         """
-        targets = _local_broadcast_addrs(self._port)
+        targets = self._broadcast_targets(self._port)
         if self._device_ip and (self._device_ip, self._port) not in targets:
             targets.append((self._device_ip, self._port))
         print(f"[udp] beacon 目标: {[t[0] for t in targets]}")
@@ -280,7 +282,7 @@ class UdpTransport:
         while not self._stop:
             now = time.monotonic()
             if now - last_refresh >= BEACON_REFRESH:
-                fresh = _local_broadcast_addrs(self._port)
+                fresh = self._broadcast_targets(self._port)
                 if self._device_ip and (self._device_ip, self._port) not in fresh:
                     fresh.append((self._device_ip, self._port))
                 last_refresh = now
