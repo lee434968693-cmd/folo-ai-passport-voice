@@ -1,5 +1,9 @@
 # 随身 AI 语音故障排查
 
+先选择平台：**[macOS 故障排查](../macos/README.zh-CN.md#troubleshooting)** / **[macOS 完整配置流程](../macos/README.zh-CN.md)** / **[Windows 完整配置流程](QUICKSTART.zh-CN.md)**。
+
+Mac 使用 BlackHole 2ch，还需核对辅助功能、输入法麦克风和本地网络权限；具体命令与现象对应处理集中在 Mac 教程。**下文为 Windows 排障**，其中 CABLE、EXE、PowerShell 命令不适用于 Mac。
+
 检查顺序：**设备联网 → 电脑转发器 → VB-CABLE → 默认麦克风 → 输入法快捷键 → 实际声音 → 出字**。
 
 先确认 **Windows 设置 → 系统 → 声音 → 输入** 已选择 **CABLE Output (VB-Audio Virtual Cable)**。

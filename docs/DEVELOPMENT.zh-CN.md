@@ -1,6 +1,18 @@
 # 随身语音开发与测试
 
-本仓库只包含本功能的代码。普通用户按 [使用教程](QUICKSTART.zh-CN.md) 使用 EXE；设备固件到官网获取。本仓库不含整机入口、BSP、共享 UI 或其他应用，不提供整机 `idf.py build`。
+本仓库只包含本功能的代码。电脑配置分别看 [macOS 教程](../macos/README.zh-CN.md) 与 [Windows 教程](QUICKSTART.zh-CN.md)；设备固件到官网获取。本仓库不含整机入口、BSP、共享 UI 或其他应用，不提供整机 `idf.py build`。
+
+## macOS 源码运行
+
+Apple 芯片 Mac 使用原生 arm64 Python 3.11+，从项目根目录依次运行：
+
+```bash
+bash macos/install.command
+bash macos/diagnose.command
+bash macos/start.command
+```
+
+运行前按 Mac 教程完成 BlackHole 2ch、系统权限、输入法音源与快捷键设置。保留 `macos/`、`windows/` 的相对位置；诊断与客户端不能同时占用端口。此客户端仍为测试版，自动测试不代替实机出字验收。
 
 ## Windows 源码运行
 

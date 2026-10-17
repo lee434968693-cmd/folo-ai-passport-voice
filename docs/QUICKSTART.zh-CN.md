@@ -1,4 +1,6 @@
-# 随身 AI 语音：小白完整使用教程
+# Windows 配置教程：AI Passport 随身语音
+
+**使用 Mac？请转到 [macOS 完整配置教程](../macos/README.zh-CN.md)**，包含 Apple 芯片检查、BlackHole、系统权限和首次出字；不要在 Mac 上照本页安装 Windows EXE 或 VB-CABLE。
 
 目标是：**按住 AI Passport 上键，对着设备说话，松开后电脑输入框出现文字；核对后短按下键回车。**
 教程以 Windows 10/11 x64 + 微信输入法为例。使用语音应用包里的 EXE，不需要 Python 或 ASR API Key。
@@ -47,7 +49,7 @@ USB 用于供电/烧录，插着 USB 并不会自动出现 USB 麦克风；无�
 
 语音应用包不含虚拟声卡或输入法安装程序，需要分别从官网获取。
 电脑可以使用网线或路由器的 5 GHz Wi-Fi；设备只能接入支持的 2.4 GHz 网络。
-macOS、Linux 和 ARM Windows 不在当前语音应用包的验收范围。
+本页及该 EXE 应用包面向 Windows x64；ARM Windows 不在当前验收范围。Mac 请按上方独立教程使用测试客户端。
 
 ### 1.2 下载和解压
 

@@ -1,29 +1,45 @@
 # AI Passport 随身语音
 
-按住设备上键说话，松开结束识别，核对文字后短按下键回车。这个项目把 AI Passport 用作 Windows 的无线麦克风与语音快捷键，文字识别由微信输入法等软件完成。
+按住设备上键说话，松开结束识别，核对文字后短按下键回车。这个项目把 AI Passport 用作电脑的无线麦克风与语音快捷键，文字识别由微信输入法等软件完成。
 
-Apple 芯片 Mac 新增了 [微信输入法测试客户端](macos/README.zh-CN.md)：使用 BlackHole 2ch 与 macOS 按键接口，复用现有设备协议，无需为此次适配重新烧录。当前是源码测试包，Mac 实机出字和输入法版本兼容尚未验收；下面的普通用户流程仍针对 Windows。
+提供 Windows 客户端与 Apple 芯片 Mac 源码测试客户端。**Mac 实机出字和输入法版本兼容尚未验收**，请先阅读对应平台的要求，再按教程完成实际说话测试。
 
 **本仓库只开源随身语音功能，不含整机源码或可刷写固件。** 固件由维护者在 [FoloToy 口袋百宝箱玩法页面](https://ai-passport.folotoy.cn/plays/438/) 发布。该页面若暂未提供包含随身语音的版本，请等待更新；不要把本仓库 Source code ZIP 当固件。
 
-## 普通用户从这里开始
+## 选择你的电脑
 
-1. 使用同款 ESP32-C3 / 8 MB / ES8311 的 FoloToy AI Passport，从官网玩法页刷入包含“随身语音”的固件；已安装者跳过。
-2. 在 [本项目 Releases](https://github.com/manchunx7-bit/folo-ai-passport-voice/releases) 下载 `ai-passport-voice-app-0.2.0.zip`。这个应用包包含 Windows EXE、本功能源码和教程，**没有整机 BIN**。
-3. 按 [详细使用教程](docs/QUICKSTART.zh-CN.md) 安装 VB-CABLE、设置输入法、启动 `windows/start.cmd`，然后完成记事本验收。
+| 平台 | 安装与配置教程 | 软件与启动方式 |
+| --- | --- | --- |
+| **macOS · Apple 芯片** | **[Mac 完整配置教程](macos/README.zh-CN.md)**：下载、Python、BlackHole、权限、快捷键、首次出字及排障 | 从本仓库 main 分支 **Code → Download ZIP** 获取完整源码；原生 arm64 Python 3.11+；`bash macos/start.command` |
+| **Windows 10/11 x64** | **[Windows 完整配置教程](docs/QUICKSTART.zh-CN.md)**：应用包、VB-CABLE、输入法、映射和记事本验收 | [Releases](https://github.com/manchunx7-bit/folo-ai-passport-voice/releases) 下载 `ai-passport-voice-app-0.2.0.zip`；解压后双击 `windows/start.cmd` |
 
-需要 Windows 10/11 x64、数据 USB 线、2.4 GHz Wi-Fi、VB-CABLE 和支持语音快捷键的输入法。电脑和设备在同一可互通局域网；USB 不会自动把设备变成 USB 麦克风，不需要蓝牙配对。
+Mac 当前没有签名的 `.app` / `.dmg`，Intel Mac 和 Rosetta 下的 x86 Python 不支持。Windows 现有发布包不包含最新 Mac 客户端；Mac 请保留完整源码中 `macos/` 与 `windows/` 的相对位置。
 
-音频方向：设备麦克风 → Wi-Fi UDP → 电脑转发器 → **CABLE Input** → **CABLE Output** → 输入法。输入法的麦克风选 CABLE Output，扬声器仍用自己的设备。
+### 两个平台共用的准备
+
+使用同款 ESP32-C3 / 8 MB / ES8311 的 FoloToy AI Passport，安装官网玩法页提供的、包含“随身语音”的固件；设备已能打开此功能就跳过刷写。本次 Mac 适配复用现有协议，无需为它重新烧录。
+
+设备接入 2.4 GHz Wi-Fi，电脑和设备在同一可互通局域网，使用 UDP 33333。电脑可通过同一路由器的网线或 5 GHz Wi-Fi 接入。USB 不会自动把设备变成 USB 麦克风，不需要蓝牙配对。虚拟声卡和输入法需从各自官网单独安装。
+
+### 音频方向别选反
+
+设备麦克风 → Wi-Fi UDP → 电脑转发器 → 虚拟声卡 → 输入法 → 当前输入框。
+
+| 设置位置 | macOS | Windows |
+| --- | --- | --- |
+| 转发器音频出口 | **BlackHole 2ch** | **CABLE Input** |
+| 输入法麦克风 | **BlackHole 2ch** | **CABLE Output** |
+| 系统默认输入 | 输入法只跟随系统时选 BlackHole 2ch | 按教程选 CABLE Output |
+| 系统默认输出 | 保持自己的扬声器 / 耳机 | 保持自己的扬声器 / 耳机 |
 
 ### 按键与首次验收
 
 - 按住上键：开启语音；等输入法界面出现后再说话。
 - 松开上键：结束语音；等文字出现并核对。
-- 短按下键：发送 Enter；当前软件决定它是换行还是发送消息。先在记事本试，不要在重要聊天窗口直接测试。
+- 短按下键：发送 Enter；当前软件决定它是换行还是发送消息。先在 Mac 文本编辑或 Windows 记事本试，不要在重要聊天窗口直接测试。
 - 长按确定：退出设备应用。
 
-输入法的快捷键与 `windows/voice-config.json` 中的 `hotkey_key`、`hotkey_mode` 必须一致。hold/tap 设置与排错见详细教程。电脑诊断通过不等于输入法真实识别已验收。
+输入法的快捷键与对应平台 `voice-config.json` 中的 `hotkey_key`、`hotkey_mode` 必须一致。`hold` 为按住 / 松开，`tap` 为同一快捷键开始 / 结束各点击一次；两种模式在设备上都仍是按住上键说话、松开结束。默认示例不代表输入法默认键，先用实体键盘验证。电脑诊断通过不等于输入法真实识别已验收。
 
 ## 源码边界
 
@@ -39,8 +55,10 @@ Apple 芯片 Mac 新增了 [微信输入法测试客户端](macos/README.zh-CN.m
 
 ## 文档
 
-- [详细使用教程](docs/QUICKSTART.zh-CN.md)
-- [常见故障排查](docs/TROUBLESHOOTING.zh-CN.md)
+- [macOS 完整配置教程与故障排查](macos/README.zh-CN.md)
+- [Windows 完整配置教程](docs/QUICKSTART.zh-CN.md)
+- [按平台查找故障排查](docs/TROUBLESHOOTING.zh-CN.md)
+- [用本地 Codex 辅助配置：Mac / Windows](docs/CODEX_SETUP.zh-CN.md)
 - [官网固件与刷写注意](docs/FIRMWARE.zh-CN.md)
 - [源码运行与测试](docs/DEVELOPMENT.zh-CN.md)
 - [验证记录及限制](docs/VALIDATION.md)
@@ -49,7 +67,20 @@ Apple 芯片 Mac 新增了 [微信输入法测试客户端](macos/README.zh-CN.m
 <a id="codex-setup"></a>
 ## 让本地 Codex 帮忙配置
 
-在解压后的应用包目录打开本地 Codex，复制：
+在解压后的**完整项目目录**打开这台电脑上的本地 Codex，按平台复制。它需要能访问本地文件与终端；系统授权、重启和实际说话需要你参与。
+
+### macOS
+
+```text
+请阅读 README.md 和 macos/README.zh-CN.md，帮助我配置 AI Passport 随身语音 Mac 测试客户端。
+先核对 Apple 芯片、系统和 Python 都为 arm64，Python 3.11+，macos 与 windows 共享模块完整；已有 macos/voice-config.json 先备份。
+按教程安装依赖，核对 BlackHole 2ch、实际宿主的辅助功能权限、输入法麦克风权限与本地网络。音频出口和输入法音源均为 BlackHole 2ch，系统输出保持扬声器或耳机。
+用 macos/.venv/bin/python3 macos/mac_voice.py --diagnose 做检查；同一时间只运行一个客户端。先用实体键盘核对输入法实际语音快捷键及 hold/tap，不假定 F9 或 Fn 是可用默认键。
+最后让我在文本编辑里对设备说话，分别确认文字出现、松开结束、下键只换行一次。区分已检查和待实机验证，诊断通过不能代替出字验收。
+只配置电脑端，固件从官网玩法页获取；不公开整机源码、录音或个人配置，不自动把环境声音发到云端。
+```
+
+### Windows
 
 ```text
 先阅读 README.md 和 docs/QUICKSTART.zh-CN.md。只帮助我配置随身语音电脑端，不要重建或公开整机源码。固件从官网玩法页获取，不要把 Source code ZIP 当固件。
