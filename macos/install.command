@@ -26,8 +26,9 @@ fi
 .venv/bin/python3 -m pip install -r requirements.txt
 if command -v xcrun >/dev/null 2>&1 && xcrun --find swiftc >/dev/null 2>&1; then
   bash apple-speech-transcriber/build.command
+  bash client-app/build.command
 else
-  echo "未找到 Swift 工具链；Apple Speech 识别辅助程序未构建。"
+  echo "未找到 Swift 工具链；语音识别辅助程序和后台客户端未构建。"
   echo "请从 App Store 安装 Xcode Command Line Tools 后重新运行本脚本。"
 fi
 if [ ! -f voice-config.json ]; then

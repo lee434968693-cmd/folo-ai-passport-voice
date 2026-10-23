@@ -8,6 +8,7 @@ logs/
 tmp/
 downloads/
 macos/apple-speech-transcriber/AIPassportSpeech.app/
+macos/AIPassportVoice.app/
 .DS_Store
 __pycache__/
 **/__pycache__/

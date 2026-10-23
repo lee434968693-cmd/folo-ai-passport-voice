@@ -120,6 +120,36 @@ bash macos/start.command
 不要在录音结束前按设备下键。客户端会等待识别完成，但最稳妥的做法是看到
 文字后再发送。
 
+## 登录后自动运行（推荐）
+
+安装用户级后台服务：
+
+```bash
+bash macos/install-service.command
+```
+
+该命令会：
+
+- 把运行文件复制到 `~/Library/Application Support/AI Passport Voice`
+- 创建 `~/Library/LaunchAgents/com.folo-aipassport.voice.client.plist`
+- 登录 Mac 后自动启动无窗口菜单栏客户端
+- Python 客户端异常退出后自动重启
+- 将日志写入安装目录下的 `runtime/logs/client.log`，超过 5 MB 自动轮转
+
+首次安装后需要在“系统设置 → 隐私与安全性 → 设备控制和数据访问”中允许
+`AIPassportVoice.app`。输入文字和回车由菜单栏应用执行，不需要另行给 Python
+授予辅助功能。
+
+菜单栏会显示“AI 语音”，可查看状态、打开日志、重启客户端或退出。
+
+停止并移除自启动项：
+
+```bash
+bash macos/uninstall-service.command
+```
+
+卸载脚本会保留已安装的运行文件和日志，方便排查或恢复。
+
 ## 诊断
 
 ```bash

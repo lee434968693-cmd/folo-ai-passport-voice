@@ -7,6 +7,8 @@ Apple Speech，识别文字自动粘贴到当前输入框。该模式不需要�
 BlackHole、Codex Dictate 或 ASR API Key，也不按说话时长消耗 OpenAI Token。
 Windows 继续提供原有的 VB-CABLE/输入法方案。
 
+Mac 可安装为登录后自动启动的后台菜单栏客户端，日常不需要打开终端。
+
 **本仓库只开源随身语音功能，不含整机源码或可刷写固件。** 固件由维护者在 [FoloToy 口袋百宝箱玩法页面](https://ai-passport.folotoy.cn/plays/438/) 发布。该页面若暂未提供包含随身语音的版本，请等待更新；不要把本仓库 Source code ZIP 当固件。
 
 ## 选择你的电脑

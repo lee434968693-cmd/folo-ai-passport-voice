@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import ipaddress
 import json
+import os
 from pathlib import Path
 import platform
 import signal
@@ -21,7 +22,7 @@ from mac_keys import CODES, MacKeyInjector, QuartzKeyboard, KeyErrorMac, resolve
 from mac_audio import make_audio_sink, coreaudio_options
 from mac_network import broadcast_targets
 from local_speech import AppleSpeechTranscriber, LocalSpeechError
-from mac_text import MacTextInjector, TextInjectionError
+from mac_text import AppBridgeTextInjector, MacTextInjector, TextInjectionError
 
 
 class MacForwarder(shared.Forwarder):
@@ -34,6 +35,7 @@ class MacForwarder(shared.Forwarder):
         self.transcriber = transcriber
         self.text_injector = text_injector
         self.local_mode = transcriber is not None
+        self.input_bridge = getattr(text_injector, 'uses_app_bridge', False) is True
         self.transcribing = False
         self.pending_enter = False
         self.loop = None
@@ -51,8 +53,9 @@ class MacForwarder(shared.Forwarder):
     def pc_status(self):
         audio_ready = bool(self.transcriber and self.transcriber.ready) if self.local_mode \
             else bool(self.sink and self.sink.enabled)
+        input_ready = self.text_injector.ready if self.input_bridge else self.injector.ready
         return {'type': 'pc.status', 'audioReady': audio_ready,
-                'hotkeyReady': bool(self.injector.ready)}
+                'hotkeyReady': bool(input_ready)}
 
     def finish(self, drain=False):
         if self.local_mode:
@@ -64,6 +67,15 @@ class MacForwarder(shared.Forwarder):
             super().finish(drain=drain)
         except KeyErrorMac as error:
             print(f'[key] 释放或结束快捷键失败：{error}', file=sys.stderr)
+
+    def _input_ready(self):
+        return self.text_injector.ready if self.input_bridge else self.injector.ready
+
+    def _send_enter(self):
+        if self.input_bridge:
+            self.text_injector.press_enter()
+        else:
+            self.enter_injector.click()
 
     def _transcription_done(self, text, error):
         self.transcribing = False
@@ -82,7 +94,7 @@ class MacForwarder(shared.Forwarder):
             self.pending_enter = False
             time.sleep(0.12)
             try:
-                self.enter_injector.click()
+                self._send_enter()
             except KeyErrorMac as enter_error:
                 print(f'[speech] 回车发送失败：{enter_error}', file=sys.stderr)
 
@@ -139,7 +151,7 @@ class MacForwarder(shared.Forwarder):
                 self.pending_enter = True
                 print('[evt] 正在识别，文字填入后将自动回车')
             else:
-                self.enter_injector.click()
+                self._send_enter()
         elif name == 'device.hello':
             print('[evt] 设备上线(device.hello)')
 
@@ -149,7 +161,7 @@ class MacForwarder(shared.Forwarder):
             if not isinstance(event, dict):
                 return
             if (event.get('event') == 'voice.start' or
-                    event.get('event') == 'key.action') and not self.injector.ready:
+                    event.get('event') == 'key.action') and not self._input_ready():
                 self.finish()
                 return
             if self.local_mode:
@@ -163,7 +175,7 @@ class MacForwarder(shared.Forwarder):
             return
 
     def check_health(self, now=None):
-        if self.active and not self.injector.ready:
+        if self.active and not self._input_ready():
             self.finish()
         if self.local_mode:
             now = time.monotonic() if now is None else now
@@ -174,7 +186,7 @@ class MacForwarder(shared.Forwarder):
         super().check_health(now)
 
     def on_audio(self, payload):
-        if self.active and not self.injector.ready:
+        if self.active and not self._input_ready():
             self.finish()
             return
         if self.local_mode:
@@ -287,6 +299,21 @@ def main():
     parser.add_argument('--list-keys', action='store_true')
     parser.add_argument('--list-devices', action='store_true')
     args = parser.parse_args()
+    parent_pid = os.environ.get('AI_PASSPORT_PARENT_PID')
+    if parent_pid:
+        try:
+            expected_parent = int(parent_pid)
+        except ValueError:
+            parser.error('AI_PASSPORT_PARENT_PID 无效')
+
+        def watch_parent():
+            while os.getppid() == expected_parent:
+                time.sleep(2)
+            print('[lifecycle] 菜单栏应用已退出，停止客户端', file=sys.stderr)
+            os._exit(0)
+
+        threading.Thread(target=watch_parent, name='parent_watchdog', daemon=True).start()
+
     if args.list_keys:
         print(' '.join(sorted(CODES)))
         print('修饰键：ctrl/shift/cmd/option；与微信输入法设置保持一致。Fn 为待实测兼容项。')
@@ -331,6 +358,9 @@ def main():
         keyboard = QuartzKeyboard()
     except ImportError as error:
         parser.error(f'缺少 Mac 依赖，请先运行 install.command：{error}')
+    app_bridge = os.environ.get('AI_PASSPORT_APP_BRIDGE') == '1'
+    if not app_bridge and not keyboard.ready:
+        keyboard.request_permission()
     transcriber = None
     sink = None
     text_injector = None
@@ -340,7 +370,10 @@ def main():
         )
         if not transcriber.ready:
             parser.error('Apple Speech 识别辅助程序未构建；请先运行 macos/install.command')
-        text_injector = MacTextInjector(keyboard)
+        if app_bridge:
+            text_injector = AppBridgeTextInjector()
+        else:
+            text_injector = MacTextInjector(keyboard)
     else:
         sink = make_audio_sink(shared, args.output_substr)
     forwarder = MacForwarder(
@@ -354,7 +387,7 @@ def main():
         print(f'快捷键 {args.key} / {args.mode}，请先在微信输入法里设为一致。')
         print('微信输入法的语音麦克风选择 BlackHole 2ch；如只跟随系统输入，需自行在系统声音输入中选择。')
         print('本程序不更改默认扬声器或麦克风。按 Ctrl+C 停止。')
-    if not keyboard.ready:
+    if not app_bridge and not keyboard.ready:
         print('[权限未就绪] 请运行 diagnose.command，授权后重开。')
     def stop_signal(_signum, _frame):
         raise KeyboardInterrupt

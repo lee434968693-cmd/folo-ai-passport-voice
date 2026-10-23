@@ -45,6 +45,13 @@ Start the client:
 bash macos/start.command
 ```
 
+To install the background menu-bar client and enable automatic startup after
+login:
+
+```bash
+bash macos/install-service.command
+```
+
 ## Privacy and cost
 
 - No OpenAI speech API is used and speech duration does not consume OpenAI

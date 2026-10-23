@@ -111,6 +111,18 @@ class KeysTest(unittest.TestCase):
         self.assertFalse(any(e['down'] for e in backend.q.events))
         self.assertFalse(injector._active)
 
+    def test_permission_prompt_uses_macos_option(self):
+        q = FakeQuartz()
+        requester = mock.Mock(return_value=False)
+        ax = types.SimpleNamespace(
+            AXIsProcessTrusted=lambda: False,
+            AXIsProcessTrustedWithOptions=requester,
+            kAXTrustedCheckOptionPrompt='prompt-key',
+        )
+        backend = keys.QuartzKeyboard(q, ax)
+        self.assertFalse(backend.request_permission())
+        requester.assert_called_once_with({'prompt-key': True})
+
     def test_partial_failure_releases_previously_pressed_modifier(self):
         backend = keyboard()
         backend.q.fail_code = 101
@@ -212,7 +224,7 @@ en2: flags=8862<BROADCAST,RUNNING> mtu 1500
     inet 192.168.90.5 netmask 0xffffff00
 '''
         self.assertEqual(network.parse_broadcasts(fixture),
-                         ['10.3.4.255', '192.168.31.255', '255.255.255.255'])
+                         ['10.3.4.255', '192.168.31.255'])
 
     def test_failed_ifconfig_falls_back_without_modifying_network(self):
         with mock.patch.object(network.subprocess, 'run', side_effect=OSError):
@@ -415,6 +427,44 @@ class LocalSpeechTest(unittest.TestCase):
             [(36, True), (36, False)]
         )
         self.assertFalse(forwarder.pending_enter)
+
+    def test_app_bridge_allows_client_without_python_accessibility(self):
+        class Transcriber:
+            ready = True
+            def begin(self): pass
+            def write_block(self, block): pass
+            def finish_capture(self): return b''
+            def transcribe(self, pcm): return ''
+            def cancel_capture(self): pass
+        class Bridge:
+            uses_app_bridge = True
+            ready = True
+            def __init__(self):
+                self.enter_count = 0
+            def insert(self, text): pass
+            def press_enter(self):
+                self.enter_count += 1
+        backend = keyboard()
+        backend.q.allowed = False
+        bridge = Bridge()
+        forwarder = m.MacForwarder(
+            args(), backend, None, transcriber=Transcriber(), text_injector=bridge
+        )
+        self.assertTrue(forwarder.pc_status()['hotkeyReady'])
+        forwarder.on_event(event('voice.start'))
+        self.assertTrue(forwarder.active)
+        forwarder.on_event(event('key.action', action='enter'))
+        self.assertEqual(bridge.enter_count, 1)
+
+    def test_app_bridge_notification_payload(self):
+        bridge = mac_text.AppBridgeTextInjector.__new__(mac_text.AppBridgeTextInjector)
+        bridge.notification_center = mock.Mock()
+        bridge.insert('测试文字')
+        bridge.press_enter()
+        calls = bridge.notification_center.postNotificationName_object_userInfo_deliverImmediately_.call_args_list
+        self.assertEqual(calls[0].args[0], 'com.folo-aipassport.voice.insertText')
+        self.assertEqual(calls[0].args[2], {'text': '测试文字'})
+        self.assertEqual(calls[1].args[0], 'com.folo-aipassport.voice.pressEnter')
 
 
 class UdpIntegrationTest(unittest.IsolatedAsyncioTestCase):

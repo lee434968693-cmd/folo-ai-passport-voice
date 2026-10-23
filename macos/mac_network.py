@@ -7,7 +7,7 @@ PRIVATE = tuple(ipaddress.IPv4Network(n) for n in ('10.0.0.0/8', '172.16.0.0/12'
 
 
 def parse_broadcasts(text):
-    result = {'255.255.255.255'}
+    result = set()
     enabled = False
     for line in text.splitlines():
         header = re.match(r'^([\w.]+):.*<([^>]+)>', line)
@@ -30,7 +30,7 @@ def parse_broadcasts(text):
                 result.add(str(network.broadcast_address))
         except (ValueError, ipaddress.AddressValueError):
             continue
-    return sorted(result)
+    return sorted(result or {'255.255.255.255'})
 
 
 def broadcast_targets(port):

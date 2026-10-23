@@ -62,6 +62,16 @@ class QuartzKeyboard:
         except Exception:
             return False
 
+    def request_permission(self):
+        requester = getattr(self.ax, 'AXIsProcessTrustedWithOptions', None)
+        prompt_key = getattr(self.ax, 'kAXTrustedCheckOptionPrompt', None)
+        if requester is None or prompt_key is None:
+            return self.ready
+        try:
+            return bool(requester({prompt_key: True}))
+        except Exception:
+            return False
+
     @property
     def ready(self):
         return not self.fault and self.permitted()

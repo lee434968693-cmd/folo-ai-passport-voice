@@ -6,6 +6,36 @@ class TextInjectionError(RuntimeError):
     pass
 
 
+class AppBridgeTextInjector:
+    """Ask the menu-bar host app to inject text with its own TCC permission."""
+
+    uses_app_bridge = True
+
+    def __init__(self):
+        from Foundation import NSDistributedNotificationCenter
+        self.notification_center = NSDistributedNotificationCenter.defaultCenter()
+
+    @property
+    def ready(self):
+        return True
+
+    def insert(self, text):
+        self.notification_center.postNotificationName_object_userInfo_deliverImmediately_(
+            'com.folo-aipassport.voice.insertText',
+            None,
+            {'text': str(text)},
+            True,
+        )
+
+    def press_enter(self):
+        self.notification_center.postNotificationName_object_userInfo_deliverImmediately_(
+            'com.folo-aipassport.voice.pressEnter',
+            None,
+            {},
+            True,
+        )
+
+
 class MacTextInjector:
     def __init__(self, keyboard, pasteboard=None, pasteboard_item=None, sleep=None):
         self.keyboard = keyboard
