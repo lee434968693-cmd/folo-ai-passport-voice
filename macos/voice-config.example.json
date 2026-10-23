@@ -1,4 +1,7 @@
 {
+  "transcription_mode": "apple-speech",
+  "speech_locale": "zh-CN",
+  "speech_on_device": false,
   "hotkey_key": "f9",
   "hotkey_mode": "hold",
   "output_substr": "BlackHole 2ch",

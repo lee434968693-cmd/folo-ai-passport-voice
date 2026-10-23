@@ -8,5 +8,8 @@
 - 设备端宿主使用 ESP-IDF、LVGL 等公开依赖时，应自行保留其许可证；本项目不打包这些库和维护者整机的共享实现。
 - VB-CABLE 与微信输入法是各自厂商的软件，安装程序不在本包内，从官网获取。
 - Mac 测试客户端使用 PyObjC（MIT）访问 Quartz/ApplicationServices，通过 sounddevice/PortAudio 输出音频，依赖由 pip 另行安装。BlackHole 为独立项目，驱动不随本包分发，需从其官方渠道安装并遵循其许可证。
+- Mac 直接语音识别模式使用 macOS 自带的 Speech 框架。语音识别辅助程序的源码
+  随本仓库提供，不打包 Apple 系统框架；使用时的设备语音处理方式及其隐私规则
+  以 Apple 的系统说明为准。
 
 项目为社区作品，不代表 FoloToy、腾讯或 VB-Audio 官方支持。个人配置、录音和账号资料不属于公开内容。

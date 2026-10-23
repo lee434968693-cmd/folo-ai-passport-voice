@@ -1,0 +1,25 @@
+name: macOS local speech
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: python -m pip install -r macos/requirements.txt
+      - name: Build Apple Speech helper
+        run: bash macos/apple-speech-transcriber/build.command
+      - name: Run tests
+        run: python -m unittest discover -s macos/tests -p 'test_*.py' -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AIPassportSpeech-app
+          path: macos/apple-speech-transcriber/AIPassportSpeech.app

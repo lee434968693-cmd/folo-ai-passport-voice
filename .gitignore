@@ -1,6 +1,14 @@
 .venv/
 .deps/
 .ci-idf/
+node_modules/
+data/
+backups/
+logs/
+tmp/
+downloads/
+macos/apple-speech-transcriber/AIPassportSpeech.app/
+.DS_Store
 __pycache__/
 **/__pycache__/
 *.pyc

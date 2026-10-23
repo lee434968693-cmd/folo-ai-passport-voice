@@ -9,3 +9,19 @@ Windows 转发器 15 项单测覆盖 hold/tap、结束释放、残留状态对�
 PC EXE 来自 Python 3.11.8、sounddevice 0.5.6、PyInstaller 6.20.0，源码与本项目 Windows 文件一致；EXE 的 `--help`、`--diagnose` 已检查。
 
 **未验收：** 新电脑从零安装、其他输入法/系统版本、真实字错误率、长时运行、用户自定义宿主的整机编译及音质。本仓库不分发整机 BIN，不宣称这里的模块可直接刷机。
+
+## macOS 直接语音识别模式
+
+2026-10-23 在 Apple 芯片 Mac mini、macOS 27、Python 3.13.17 arm64 上完成：
+
+- Apple Speech 辅助程序通过 Swift 6.4 构建并通过临时签名校验。
+- 使用系统 `say` 生成的 16 kHz PCM 测试音频，经真实 Apple Speech 识别得到
+  “这是语音输入测试”。
+- 将测试音频编码为设备使用的 IMA ADPCM 块，走完整 `MacForwarder` 音频处理路径
+  后，识别文字成功粘贴到“文本编辑”。
+- 识别辅助程序使用后台启动，不改变当前输入框焦点。
+- 29 项 Mac 单元与 UDP 集成测试通过。
+
+**仍待验收：** 真实 AI Passport 麦克风经新 Apple Speech 模式的自由说话测试、
+长时运行、不同 macOS/Apple Speech 语言模型、其他中文输入环境以及公开发布后的
+全新机器安装。自动测试与测试音频不能代替这些实机结果。

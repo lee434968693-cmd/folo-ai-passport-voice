@@ -6,6 +6,8 @@ from pathlib import Path
 import socket
 import struct
 import sys
+import tempfile
+import time
 import types
 import unittest
 from unittest import mock
@@ -14,7 +16,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import mac_voice as m
 import mac_audio as audio
 import mac_keys as keys
+import mac_text
 import mac_network as network
+import local_speech
 from udp_transport import UdpTransport, UdpError, EVENT_UUID, AUDIO_UUID
 
 
@@ -281,6 +285,136 @@ class ForwarderTest(unittest.TestCase):
             example.write_text('{"hotkey_key":"f9"}', encoding='utf-8')
             with mock.patch.object(m, 'HERE', Path(temp)):
                 self.assertEqual(m.load_config(m.HERE / 'voice-config.json')['hotkey_key'], 'f9')
+
+
+class LocalSpeechTest(unittest.TestCase):
+    def test_transcriber_collects_decoded_pcm_and_enforces_ready_state(self):
+        transcriber = local_speech.AppleSpeechTranscriber('/missing/app')
+        self.assertFalse(transcriber.ready)
+        samples = [100] * 1600
+        block = local_speech.adpcm.encode_block(local_speech.adpcm.AdpcmState(), samples)
+        transcriber.begin()
+        transcriber.write_block(block)
+        pcm = transcriber.finish_capture()
+        self.assertEqual(len(pcm), 3200)
+        self.assertEqual(struct.unpack('<h', pcm[:2])[0], 100)
+        with self.assertRaises(local_speech.LocalSpeechError):
+            transcriber.transcribe(pcm)
+
+    def test_transcriber_reads_json_and_removes_temporary_audio(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app = Path(temp) / 'AIPassportSpeech.app'
+            executable = app / 'Contents' / 'MacOS' / 'AIPassportSpeech'
+            executable.parent.mkdir(parents=True)
+            executable.write_bytes(b'fake')
+            invocations = []
+
+            def run(command, **kwargs):
+                invocations.append(command)
+                output = next(x.split('=', 1)[1] for x in command if x.startswith('--output='))
+                audio_path = next(x.split('=', 1)[1] for x in command if x.startswith('--audio='))
+                self.assertTrue(Path(audio_path).is_file())
+                Path(output).write_text('{"text":"识别成功"}', encoding='utf-8')
+                return types.SimpleNamespace(returncode=0, stdout='', stderr='')
+
+            transcriber = local_speech.AppleSpeechTranscriber(app)
+            with mock.patch.object(local_speech.subprocess, 'run', side_effect=run):
+                self.assertEqual(transcriber.transcribe(b'\x00' * 32000), '识别成功')
+            audio_path = next(
+                x.split('=', 1)[1] for x in invocations[0] if x.startswith('--audio=')
+            )
+            self.assertFalse(Path(audio_path).exists())
+
+    def test_text_injection_pastes_and_clears_temporary_clipboard(self):
+        calls = []
+        class Pasteboard:
+            def pasteboardItems(self):
+                return []
+            def clearContents(self):
+                calls.append('clear')
+            def setString_forType_(self, text, value_type):
+                calls.append(('set', text))
+                return True
+        class ClipboardItem:
+            @staticmethod
+            def alloc():
+                return mock.Mock()
+        backend = keyboard()
+        injector = mac_text.MacTextInjector(
+            backend, Pasteboard(), ClipboardItem, sleep=lambda _seconds: None
+        )
+        with mock.patch.object(keys, 'MacKeyInjector', autospec=True) as key_injector:
+            injector.insert('你好')
+        key_injector.return_value.click.assert_called_once()
+        self.assertEqual(calls, ['clear', ('set', '你好'), 'clear'])
+
+    def test_local_forwarder_transcribes_and_fills_without_hotkey(self):
+        class Transcriber:
+            ready = True
+            def __init__(self):
+                self.started = 0
+                self.blocks = 0
+            def begin(self):
+                self.started += 1
+            def write_block(self, block):
+                self.blocks += 1
+            def finish_capture(self):
+                return b'\x00' * 3200
+            def transcribe(self, pcm):
+                return '本地识别文字'
+            def cancel_capture(self):
+                pass
+        class TextInjector:
+            ready = True
+            def __init__(self):
+                self.text = None
+            def insert(self, text):
+                self.text = text
+        backend = keyboard()
+        transcriber = Transcriber()
+        text_injector = TextInjector()
+        forwarder = m.MacForwarder(
+            args(), backend, None, transcriber=transcriber, text_injector=text_injector
+        )
+        forwarder.on_event(event('voice.start'))
+        self.assertTrue(forwarder.active)
+        forwarder.on_audio(bytes([1, 128]) + bytes(804))
+        forwarder.on_audio(bytes([2, 128]) + bytes(804))
+        forwarder.on_event(event('voice.end'))
+        for _ in range(100):
+            if text_injector.text:
+                break
+            time.sleep(.01)
+        self.assertEqual(text_injector.text, '本地识别文字')
+        self.assertEqual(transcriber.started, 1)
+        self.assertEqual(transcriber.blocks, 2)
+        self.assertFalse(forwarder.active)
+        self.assertFalse(any(e['down'] for e in backend.q.events))
+
+    def test_pending_enter_is_sent_only_after_text_injection(self):
+        class Transcriber:
+            ready = True
+            def begin(self): pass
+            def write_block(self, block): pass
+            def finish_capture(self): return b''
+            def transcribe(self, pcm): return '等待完成'
+            def cancel_capture(self): pass
+        text_injector = mock.Mock(ready=True)
+        backend = keyboard()
+        forwarder = m.MacForwarder(
+            args(), backend, None,
+            transcriber=Transcriber(), text_injector=text_injector
+        )
+        forwarder.pending_enter = True
+        forwarder.transcribing = True
+        with mock.patch.object(m.time, 'sleep'):
+            forwarder._transcription_done('等待完成', None)
+        text_injector.insert.assert_called_once_with('等待完成')
+        self.assertEqual(
+            [(e['code'], e['down']) for e in backend.q.events[-2:]],
+            [(36, True), (36, False)]
+        )
+        self.assertFalse(forwarder.pending_enter)
 
 
 class UdpIntegrationTest(unittest.IsolatedAsyncioTestCase):

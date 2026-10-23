@@ -1,5 +1,15 @@
 # 更新日志
 
+## Mac Apple Speech 直接识别版 · 0.1.0
+
+- 新增 macOS Apple Speech 直接识别模式。
+- 设备音频可直接转为文字，不需要微信输入法、BlackHole 或 Codex Dictate。
+- 临时 WAV 采用仅当前用户可读权限，识别完成立即删除。
+- 识别文字使用临时剪贴板粘贴，并尝试恢复用户原剪贴板。
+- 支持设备下键在识别完成后发送 Enter。
+- 保留原微信输入法 + BlackHole 兼容模式。
+- 新增 macOS Swift 构建脚本、GitHub Actions、中文和英文使用文档。
+
 ## 配置文档更新 · 2026-10-17
 
 - 将首页整理为 macOS / Windows 两个平台入口，区分最新 Mac 源码与 Windows 发布包。

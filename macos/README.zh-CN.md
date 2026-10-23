@@ -1,5 +1,10 @@
 # macOS 配置教程：AI Passport 随身语音
 
+> **推荐使用新版直接语音识别模式。** 它不需要微信输入法、BlackHole 或
+> Codex Dictate。请优先阅读
+> [macOS 直接语音识别教程](../docs/MAC-LOCAL-SPEECH.zh-CN.md)。
+> 本文保留为原微信输入法 + BlackHole 兼容模式的完整教程。
+
 目标：**按住设备上键，对着设备说话，松开后 Mac 输入框出现文字；核对后短按下键回车。** 识别由微信输入法等语音输入软件完成，客户端负责传声音和快捷键，不提供 ASR 服务或 API Key。
 
 **适用范围：Apple 芯片 Mac + 原生 arm64 Python 3.11 或更新版本。当前为源码测试客户端，没有签名的 `.app` / `.dmg`；尚未完成真实 Mac 安装、CoreAudio 和微信输入法出字验收。** Intel Mac、Rosetta 下的 x86 Python 不支持；支持的最低 macOS 版本及输入法版本仍待实机核对。下文是配置与验收流程，不代表所有版本已通过兼容测试。

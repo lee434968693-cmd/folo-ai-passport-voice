@@ -1,8 +1,11 @@
 # AI Passport 随身语音
 
-按住设备上键说话，松开结束识别，核对文字后短按下键回车。这个项目把 AI Passport 用作电脑的无线麦克风与语音快捷键，文字识别由微信输入法等软件完成。
+按住设备上键说话，松开结束识别，核对文字后短按下键回车。这个项目把 AI Passport 用作电脑的无线麦克风与语音快捷键。
 
-提供 Windows 客户端与 Apple 芯片 Mac 源码测试客户端。**Mac 实机出字和输入法版本兼容尚未验收**，请先阅读对应平台的要求，再按教程完成实际说话测试。
+本分支新增 **Mac 直接语音识别模式**：设备音频由 macOS 客户端收集并交给
+Apple Speech，识别文字自动粘贴到当前输入框。该模式不需要微信输入法、
+BlackHole、Codex Dictate 或 ASR API Key，也不按说话时长消耗 OpenAI Token。
+Windows 继续提供原有的 VB-CABLE/输入法方案。
 
 **本仓库只开源随身语音功能，不含整机源码或可刷写固件。** 固件由维护者在 [FoloToy 口袋百宝箱玩法页面](https://ai-passport.folotoy.cn/plays/438/) 发布。该页面若暂未提供包含随身语音的版本，请等待更新；不要把本仓库 Source code ZIP 当固件。
 
@@ -10,43 +13,57 @@
 
 | 平台 | 安装与配置教程 | 软件与启动方式 |
 | --- | --- | --- |
-| **macOS · Apple 芯片** | **[Mac 完整配置教程](macos/README.zh-CN.md)**：下载、Python、BlackHole、权限、快捷键、首次出字及排障 | 从本仓库 main 分支 **Code → Download ZIP** 获取完整源码；原生 arm64 Python 3.11+；`bash macos/start.command` |
+| **macOS · Apple 芯片** | **[Mac 直接语音识别教程](docs/MAC-LOCAL-SPEECH.zh-CN.md)**：Python、Swift、权限、识别、首次出字及排障 | 完整源码；原生 arm64 Python 3.11+；`bash macos/install.command` 后运行 `bash macos/start.command` |
 | **Windows 10/11 x64** | **[Windows 完整配置教程](docs/QUICKSTART.zh-CN.md)**：应用包、VB-CABLE、输入法、映射和记事本验收 | [Releases](https://github.com/manchunx7-bit/folo-ai-passport-voice/releases) 下载 `ai-passport-voice-app-0.2.0.zip`；解压后双击 `windows/start.cmd` |
 
-Mac 当前没有签名的 `.app` / `.dmg`，Intel Mac 和 Rosetta 下的 x86 Python 不支持。Windows 现有发布包不包含最新 Mac 客户端；Mac 请保留完整源码中 `macos/` 与 `windows/` 的相对位置。
+Mac 当前没有签名分发的 `.dmg`；Intel Mac 和 Rosetta 下的 x86 Python 不支持。
+Mac 请保留完整源码中 `macos/` 与 `windows/` 的相对位置。
 
 ### 两个平台共用的准备
 
 使用同款 ESP32-C3 / 8 MB / ES8311 的 FoloToy AI Passport，安装官网玩法页提供的、包含“随身语音”的固件；设备已能打开此功能就跳过刷写。本次 Mac 适配复用现有协议，无需为它重新烧录。
 
-设备接入 2.4 GHz Wi-Fi，电脑和设备在同一可互通局域网，使用 UDP 33333。电脑可通过同一路由器的网线或 5 GHz Wi-Fi 接入。USB 不会自动把设备变成 USB 麦克风，不需要蓝牙配对。虚拟声卡和输入法需从各自官网单独安装。
+设备接入 2.4 GHz Wi-Fi，电脑和设备在同一可互通局域网，使用 UDP 33333。
+电脑可通过同一路由器的网线或 5 GHz Wi-Fi 接入。USB 不会自动把设备变成
+USB 麦克风，不需要蓝牙配对。
 
 ### 音频方向别选反
 
-设备麦克风 → Wi-Fi UDP → 电脑转发器 → 虚拟声卡 → 输入法 → 当前输入框。
+Mac 直接识别：
 
-| 设置位置 | macOS | Windows |
+```text
+设备麦克风 → Wi-Fi UDP → Mac 客户端 → Apple Speech → 当前输入框
+```
+
+Windows 兼容模式：
+
+```text
+设备麦克风 → Wi-Fi UDP → Windows 转发器 → VB-CABLE → 输入法 → 当前输入框
+```
+
+| 设置位置 | macOS 直接识别 | Windows 兼容模式 |
 | --- | --- | --- |
-| 转发器音频出口 | **BlackHole 2ch** | **CABLE Input** |
-| 输入法麦克风 | **BlackHole 2ch** | **CABLE Output** |
-| 系统默认输入 | 输入法只跟随系统时选 BlackHole 2ch | 按教程选 CABLE Output |
+| 转发器音频出口 | 不经过虚拟声卡 | **CABLE Input** |
+| 输入法麦克风 | 不使用输入法 | **CABLE Output** |
+| 系统默认输入 | 不影响 | 按教程选 CABLE Output |
 | 系统默认输出 | 保持自己的扬声器 / 耳机 | 保持自己的扬声器 / 耳机 |
 
 ### 按键与首次验收
 
-- 按住上键：开启语音；等输入法界面出现后再说话。
-- 松开上键：结束语音；等文字出现并核对。
+- 按住上键：开始录音。
+- 松开上键：结束录音并开始识别。
 - 短按下键：发送 Enter；当前软件决定它是换行还是发送消息。先在 Mac 文本编辑或 Windows 记事本试，不要在重要聊天窗口直接测试。
 - 长按确定：退出设备应用。
 
-输入法的快捷键与对应平台 `voice-config.json` 中的 `hotkey_key`、`hotkey_mode` 必须一致。`hold` 为按住 / 松开，`tap` 为同一快捷键开始 / 结束各点击一次；两种模式在设备上都仍是按住上键说话、松开结束。默认示例不代表输入法默认键，先用实体键盘验证。电脑诊断通过不等于输入法真实识别已验收。
+Mac 直接识别模式不需要配置任何输入法快捷键。Windows 和原 Mac 兼容模式仍要求
+输入法快捷键与 `hotkey_key`、`hotkey_mode` 一致。
 
 ## 源码边界
 
 | 目录 | 内容 |
 | --- | --- |
 | `windows/` | 可运行的 Windows 转发器、ADPCM 解码、UDP 通道、诊断与测试 |
-| `macos/` | Apple 芯片 Mac 测试客户端、启动脚本、诊断与模拟接口测试；复用 Windows 目录的协议模块 |
+| `macos/` | Apple 芯片 Mac 客户端、Apple Speech 识别辅助程序、启动脚本、诊断与测试 |
 | `device/main/apps/voice/` | 本功能的设备端状态机、协议、录音生命周期、传输和界面业务代码 |
 | `device/tests/` | 语音状态机和界面数学的可独立运行测试 |
 | `docs/` | 使用、排错、固件入口、开发与底层接口适配说明 |
@@ -55,7 +72,9 @@ Mac 当前没有签名的 `.app` / `.dmg`，Intel Mac 和 Rosetta 下的 x86 Pyt
 
 ## 文档
 
-- [macOS 完整配置教程与故障排查](macos/README.zh-CN.md)
+- [macOS 直接语音识别教程](docs/MAC-LOCAL-SPEECH.zh-CN.md)
+- [macOS 原微信输入法 / BlackHole 教程](macos/README.zh-CN.md)
+- [English README](README.en.md)
 - [Windows 完整配置教程](docs/QUICKSTART.zh-CN.md)
 - [按平台查找故障排查](docs/TROUBLESHOOTING.zh-CN.md)
 - [用本地 Codex 辅助配置：Mac / Windows](docs/CODEX_SETUP.zh-CN.md)
@@ -72,12 +91,16 @@ Mac 当前没有签名的 `.app` / `.dmg`，Intel Mac 和 Rosetta 下的 x86 Pyt
 ### macOS
 
 ```text
-请阅读 README.md 和 macos/README.zh-CN.md，帮助我配置 AI Passport 随身语音 Mac 测试客户端。
-先核对 Apple 芯片、系统和 Python 都为 arm64，Python 3.11+，macos 与 windows 共享模块完整；已有 macos/voice-config.json 先备份。
-按教程安装依赖，核对 BlackHole 2ch、实际宿主的辅助功能权限、输入法麦克风权限与本地网络。音频出口和输入法音源均为 BlackHole 2ch，系统输出保持扬声器或耳机。
-用 macos/.venv/bin/python3 macos/mac_voice.py --diagnose 做检查；同一时间只运行一个客户端。先用实体键盘核对输入法实际语音快捷键及 hold/tap，不假定 F9 或 Fn 是可用默认键。
-最后让我在文本编辑里对设备说话，分别确认文字出现、松开结束、下键只换行一次。区分已检查和待实机验证，诊断通过不能代替出字验收。
-只配置电脑端，固件从官网玩法页获取；不公开整机源码、录音或个人配置，不自动把环境声音发到云端。
+请阅读 README.md 和 docs/MAC-LOCAL-SPEECH.zh-CN.md，帮助我配置 AI Passport
+macOS 直接语音识别版。先核对 Apple 芯片、macOS、Python 3.11+ 和 Swift 工具链，
+完整保留 macos 与 windows 目录；已有语音配置先备份。
+运行 macos/install.command 安装依赖并构建 AIPassportSpeech.app。核对终端辅助
+功能权限与 AIPassportSpeech.app 的语音识别权限，不关闭系统安全保护。
+默认 transcription_mode 为 apple-speech，不需要微信输入法或 BlackHole。用
+macos/.venv/bin/python3 macos/mac_voice.py --diagnose 检查后启动
+macos/start.command。
+最后让我在文本编辑里对设备说话，确认松开后文字出现、下键只回车一次。诊断
+通过不能代替真实语音验收。不要上传个人配置、录音或密钥。
 ```
 
 ### Windows
