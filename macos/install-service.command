@@ -31,13 +31,16 @@ cat > "$PLIST_PATH" <<PLIST
   <string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/open</string>
-    <string>-g</string>
-    <string>-a</string>
-    <string>$APP_PATH</string>
+    <string>$APP_PATH/Contents/MacOS/AIPassportVoice</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>LimitLoadToSessionType</key>
+  <string>Aqua</string>
+  <key>WorkingDirectory</key>
+  <string>$RUNTIME_ROOT/macos</string>
   <key>ThrottleInterval</key>
   <integer>5</integer>
 </dict>
