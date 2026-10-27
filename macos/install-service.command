@@ -31,7 +31,11 @@ cat > "$PLIST_PATH" <<PLIST
   <string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$APP_PATH/Contents/MacOS/AIPassportVoice</string>
+    <string>/usr/bin/open</string>
+    <string>-W</string>
+    <string>-g</string>
+    <string>-a</string>
+    <string>$APP_PATH</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

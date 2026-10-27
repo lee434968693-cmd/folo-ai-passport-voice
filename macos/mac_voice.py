@@ -92,9 +92,11 @@ class MacForwarder(shared.Forwarder):
             return
         if self.pending_enter:
             self.pending_enter = False
-            time.sleep(0.12)
+            # 等待 Mac 菜单栏程序完成粘贴，避免 Codex 把回车发送当成空消息。
+            time.sleep(1.25)
             try:
                 self._send_enter()
+                print('[evt] 已发送下键回车')
             except KeyErrorMac as enter_error:
                 print(f'[speech] 回车发送失败：{enter_error}', file=sys.stderr)
 

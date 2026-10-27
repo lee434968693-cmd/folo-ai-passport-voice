@@ -247,10 +247,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func insertText(_ text: String) {
-        if setSelectedText(text) {
-            writeLog("已通过辅助功能填入识别文字")
-            return
-        }
+        // WebView/Electron 可能错误地报告 AXSelectedText 写入成功，但界面不会更新。
+        // 统一改用系统粘贴，确保 Codex 等应用真正收到文字。
         let snapshot = clipboardSnapshot()
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -259,10 +257,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         postKey(9, flags: .maskCommand)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.restoreClipboard(snapshot)
         }
-        writeLog("已通过剪贴板填入识别文字")
+        writeLog("已发送剪贴板粘贴，共 \(text.count) 个字符")
     }
 
     private func setSelectedText(_ text: String) -> Bool {
